@@ -37,6 +37,8 @@ enum class TokenType {
     LTEQ = 209,
     GT = 210,
     GTEQ = 211,
+    // None
+    NAN = 999,
 };
 
 // Token contains the original text and the type of token.
@@ -59,6 +61,9 @@ public:
     };
 
     Token (std::string tokenText, TokenType tokenKind);
+
+    // default constuctor
+    Token ();
 };
 
 // the main class that will take in the source code and tokenize it

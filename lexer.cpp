@@ -8,6 +8,11 @@ Token::Token (std::string tokenText, TokenType tokenKind)
     , kind {tokenKind}
     {}
 
+Token::Token ()
+    : text {""}
+    , kind {TokenType::NAN}
+    {}
+
 // see https://www.learncpp.com/cpp-tutorial/constructor-member-initializer-lists/ for member init syntax
 Lexer::Lexer(const std::string& src)
     : source {src + '\n'}
@@ -49,7 +54,7 @@ void Lexer::skipComment(){
 }
 
 Token Lexer::getToken(){
-    Token token {"\0", TokenType::T_EOF};   // default
+    Token token;
     skipWhitespace();
     skipComment();
 
