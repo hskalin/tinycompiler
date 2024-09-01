@@ -3,47 +3,47 @@
 #include<unordered_map>
 
 // TokenType is our enum for all the types of tokens
-namespace TokenType {
-    enum TokenType {
-        T_EOF = -1,
-        NEWLINE = 0,
-        NUMBER = 1,
-        IDENT = 2,
-        STRING = 3,
-        // Keywords
-        LABEL = 101,
-        GOTO = 102,
-        PRINT = 103,
-        INPUT = 104,
-        LET = 105,
-        IF = 106,
-        THEN = 107,
-        ENDIF = 108,
-        WHILE = 109,
-        REPEAT = 110,
-        ENDWHILE = 111,
-        // Operators
-        EQ = 201,
-        PLUS = 202,
-        MINUS = 203,
-        ASTERISK = 204,
-        SLASH = 205,
-        EQEQ = 206,
-        NOTEQ = 207,
-        LT = 208,
-        LTEQ = 209,
-        GT = 210,
-        GTEQ = 211,
-    };
-}
+// using enum class instead https://stackoverflow.com/questions/482745/namespaces-for-enum-types-best-practices
+// https://www.learncpp.com/cpp-tutorial/scoped-enumerations-enum-classes/
+enum class TokenType {
+    T_EOF = -1,
+    NEWLINE = 0,
+    NUMBER = 1,
+    IDENT = 2,
+    STRING = 3,
+    // Keywords
+    LABEL = 101,
+    GOTO = 102,
+    PRINT = 103,
+    INPUT = 104,
+    LET = 105,
+    IF = 106,
+    THEN = 107,
+    ENDIF = 108,
+    WHILE = 109,
+    REPEAT = 110,
+    ENDWHILE = 111,
+    // Operators
+    EQ = 201,
+    PLUS = 202,
+    MINUS = 203,
+    ASTERISK = 204,
+    SLASH = 205,
+    EQEQ = 206,
+    NOTEQ = 207,
+    LT = 208,
+    LTEQ = 209,
+    GT = 210,
+    GTEQ = 211,
+};
 
 // Token contains the original text and the type of token.
 class Token {
 public:
     // choosing EOF as the default
     std::string text;
-    TokenType::TokenType kind;
-    static inline std::unordered_map<std::string, TokenType::TokenType> keywordMap {
+    TokenType kind;
+    static inline std::unordered_map<std::string, TokenType> keywordMap {
         {"LABEL", TokenType::LABEL},
         {"GOTO", TokenType::GOTO},
         {"PRINT", TokenType::PRINT},
@@ -57,7 +57,7 @@ public:
         {"ENDWHILE", TokenType::ENDWHILE},
     };
 
-    Token (std::string tokenText, TokenType::TokenType tokenKind)
+    Token (std::string tokenText, TokenType tokenKind)
         : text {tokenText}
         , kind {tokenKind}
     {}
@@ -237,7 +237,9 @@ int main(){
 
     Token token = lex.getToken();
     while (token.kind != TokenType::T_EOF) {
-        std::cout << token.kind << '\t' << token.text << '\n';
+        // why use static_cast https://stackoverflow.com/questions/475824/static-castintfoo-vs-intfoo
+        // another hack listed in https://www.learncpp.com/cpp-tutorial/scoped-enumerations-enum-classes/ is to use +
+        std::cout << static_cast<int>(token.kind) << '\t' << token.text << '\n';
         token = lex.getToken();
     }   
 }
