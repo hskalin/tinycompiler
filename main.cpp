@@ -1,10 +1,30 @@
 #include "lexer.h"
 #include<iostream>
+#include<fstream>
+#include<sstream>
 #include<string>
 
-int main(){
-    std::string source {"PRINT \"How many fibonacci numbers do you want?\"\nINPUT nums\nLET a = 0\nLET b = 1\nWHILE nums > 0 REPEAT\nPRINT a\nLET c = a + b\nLET a = b\nLET b = c\nLET nums = nums - 1\nNDWHILE	\n"};
-    std::cout << source;
+int main(int argc, char* argv[]){
+    std::cout << "Tiny Compiler\n";
+
+    if (argc != 2){
+        std::cerr << "Error: Compiler needs source file as argument.\n";
+        exit(1);
+    }
+
+    std::ifstream file(argv[1]);
+
+    if (!file.is_open()){
+        std::cerr << "Failed to open file " << argv[1] << std::endl;
+        exit(1);
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf(); // reads entire file
+    std::string source = buffer.str();
+
+    // Close the file
+    file.close();
 
     Lexer lex{source};
 
@@ -14,5 +34,9 @@ int main(){
         // another hack listed in https://www.learncpp.com/cpp-tutorial/scoped-enumerations-enum-classes/ is to use +
         std::cout << static_cast<int>(token.kind) << '\t' << token.text << '\n';
         token = lex.getToken();
-    }   
+    }  
+
+    // Parser parser{lex};
+    // parser.program() # Start the parser.
+    // print("Parsing completed.")
 }
