@@ -3,6 +3,7 @@
 
 #include "lexer.h"
 #include<string>
+#include<unordered_set>
 
 // helper function to return token kind as a string
 const std::string getTokenName(TokenType kind);
@@ -12,6 +13,10 @@ public:
     Lexer lexer;
     Token curToken;
     Token peekToken;
+
+    std::unordered_set<std::string> symbols;        // Variables declared so far
+    std::unordered_set<std::string> labelsDeclared; // Lables declared so far
+    std::unordered_set<std::string> labelsGotoed;   // Lables goto'ed so far
 
     Parser(Lexer lex);
 

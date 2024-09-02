@@ -53,6 +53,12 @@ void Parser::program(){
     while (!checkToken(TokenType::T_EOF)){
         statement();
     }
+
+    // check that all labels referenced by a GOTO is declared
+    for (const auto& label : labelsGotoed){
+        if (labelsDeclared.find(label) == labelsDeclared.end())
+            abort("Attempting to GOTO to undeclared label: " + label);
+    }
 }
 
 void Parser::nl(){
@@ -72,6 +78,9 @@ void Parser::primary(){
         nextToken();
     }
     else if (checkToken(TokenType::IDENT)){
+        // Ensure the variable already exists
+        if (symbols.find(curToken.text) == symbols.end())
+            abort("Referencing variable before assignment: " + curToken.text);
         nextToken();
     }
     else
@@ -195,18 +204,30 @@ void Parser::statement(){
     else if (checkToken(TokenType::LABEL)){
         std::cout << "STATEMENT-LABEL\n";
         nextToken();
+
+        // make sure its not already declared
+        if (labelsDeclared.find(curToken.text) != labelsDeclared.end())
+            abort("Label already exists: " + curToken.text);
+        labelsDeclared.insert(curToken.text);
+
         match(TokenType::IDENT);
     }
     // "GOTO" ident
     else if (checkToken(TokenType::GOTO)){
         std::cout << "STATEMENT-GOTO\n";
         nextToken();
+        labelsGotoed.insert(curToken.text);
         match(TokenType::IDENT);
     }    
     // "LET" ident "=" expression
     else if (checkToken(TokenType::LET)){
         std::cout << "STATEMENT-LET\n";
         nextToken();
+
+        // Check if ident exists in symbol table. If not, declare it.
+        if (symbols.find(curToken.text) == symbols.end())
+            symbols.insert(curToken.text);
+
         match(TokenType::IDENT);
         match(TokenType::EQ);
         expression();
@@ -215,6 +236,11 @@ void Parser::statement(){
     else if (checkToken(TokenType::INPUT)){
         std::cout << "STATEMENT-INPUT\n";
         nextToken();
+
+        // If variable doesn't already exist, declare it
+        if (symbols.find(curToken.text) == symbols.end())
+            symbols.insert(curToken.text);
+
         match(TokenType::IDENT);
     }  
     else{
