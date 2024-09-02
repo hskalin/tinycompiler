@@ -1,3 +1,4 @@
+# tutorial : https://makefiletutorial.com/
 # Compiler
 CXX = g++
 
