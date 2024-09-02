@@ -1,5 +1,6 @@
 #include "parse.h"
 #include "lexer.h"
+#include "emit.h"
 #include<string>
 #include<iostream>
 #include<sstream>
@@ -7,11 +8,14 @@
 
 const std::string getTokenName(TokenType kind){
     // TODO return actual names
+    // why use static_cast https://stackoverflow.com/questions/475824/static-castintfoo-vs-intfoo
+    // another hack listed in https://www.learncpp.com/cpp-tutorial/scoped-enumerations-enum-classes/ is to use +
     return std::to_string(static_cast<int>(kind));
 }
 
-Parser::Parser(Lexer lex)
+Parser::Parser(Lexer lex, Emitter emit)
     : lexer {lex}
+    , emitter {emit}
     {
         nextToken();
         nextToken();  // Call this twice to initialize current and peek.

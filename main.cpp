@@ -1,5 +1,6 @@
 #include "lexer.h"
 #include "parse.h"
+#include "emit.h"
 #include<iostream>
 #include<fstream>
 #include<sstream>
@@ -27,17 +28,11 @@ int main(int argc, char* argv[]){
     // Close the file
     file.close();
 
-    Lexer lex{source};
+    Lexer lexer{source};
+    Emitter emitter{"out.c"};
+    Parser parser{lexer, emitter};
 
-    // Token token = lex.getToken();
-    // while (token.kind != TokenType::T_EOF) {
-    //     // why use static_cast https://stackoverflow.com/questions/475824/static-castintfoo-vs-intfoo
-    //     // another hack listed in https://www.learncpp.com/cpp-tutorial/scoped-enumerations-enum-classes/ is to use +
-    //     std::cout << static_cast<int>(token.kind) << '\t' << token.text << '\n';
-    //     token = lex.getToken();
-    // }  
-
-    Parser parser{lex};
     parser.program(); // Start the parser.
-    std::cout << "Parsing completed.\n";
+    emitter.writeFile();
+    std::cout << "Compiling completed.\n";
 }
