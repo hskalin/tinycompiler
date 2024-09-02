@@ -11,9 +11,9 @@ const std::string getTokenName(TokenType kind);
 
 class Parser{
 public:
-    Lexer lexer;
-    Emitter emitter;
-    
+    Lexer& lexer;
+    Emitter& emitter;
+
     Token curToken;
     Token peekToken;
 
@@ -21,7 +21,7 @@ public:
     std::unordered_set<std::string> labelsDeclared; // Lables declared so far
     std::unordered_set<std::string> labelsGotoed;   // Lables goto'ed so far
 
-    Parser(Lexer lex, Emitter emit);
+    Parser(Lexer& lex, Emitter& emit);
 
     // Return true if the current token matches.
     bool checkToken(TokenType kind);

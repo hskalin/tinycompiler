@@ -12,11 +12,11 @@ public:
 
     Emitter(const std::string& fullpath);
 
-    void emit(std::string& code);
+    void emit(const std::string code);
 
-    void emitLine(std::string& code);
+    void emitLine(const std::string code);
 
-    void headerLine(std::string& code);
+    void headerLine(const std::string code);
 
     void writeFile();
 };

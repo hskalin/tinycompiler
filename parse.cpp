@@ -13,7 +13,7 @@ const std::string getTokenName(TokenType kind){
     return std::to_string(static_cast<int>(kind));
 }
 
-Parser::Parser(Lexer lex, Emitter emit)
+Parser::Parser(Lexer& lex, Emitter& emit)
     : lexer {lex}
     , emitter {emit}
     {
@@ -47,7 +47,8 @@ void Parser::nextToken(){
 }
 
 void Parser::program(){
-    std::cout << "PROGRAM\n";
+    emitter.headerLine("#include <stdio.h>");
+    emitter.headerLine("int main(void){");
 
     // Since some newlines are required in our grammar, need to skip the excess.
     while (checkToken(TokenType::NEWLINE))
@@ -57,6 +58,10 @@ void Parser::program(){
     while (!checkToken(TokenType::T_EOF)){
         statement();
     }
+
+    // Wrap things up.
+    emitter.emitLine("return 0;");
+    emitter.emitLine("}");
 
     // check that all labels referenced by a GOTO is declared
     for (const auto& label : labelsGotoed){
@@ -68,23 +73,22 @@ void Parser::program(){
 void Parser::nl(){
     // Require at least one newline.
     match(TokenType::NEWLINE);
-    std::cout << "NEWLINE\n";
 
     // But we will allow extra newlines too, of course.
     while (checkToken(TokenType::NEWLINE))
         nextToken();
 }
 
-void Parser::primary(){
-    std::cout << "PRIMARY (" << curToken.text << ")\n";
-    
+void Parser::primary(){   
     if (checkToken(TokenType::NUMBER)){
+        emitter.emit(curToken.text);
         nextToken();
     }
     else if (checkToken(TokenType::IDENT)){
         // Ensure the variable already exists
         if (symbols.find(curToken.text) == symbols.end())
             abort("Referencing variable before assignment: " + curToken.text);
+        emitter.emit(curToken.text);
         nextToken();
     }
     else
@@ -92,33 +96,31 @@ void Parser::primary(){
 }
 
 void Parser::unary(){
-    std::cout << "UNARY\n";
-
     // may or may not have a +/- in front
-    if (checkToken(TokenType::PLUS) || checkToken(TokenType::MINUS))
+    if (checkToken(TokenType::PLUS) || checkToken(TokenType::MINUS)){
+        emitter.emit(curToken.text);
         nextToken();
+    }
     primary();
 }
 
 void Parser::term(){
-    std::cout << "TERM\n";
-
     unary();
 
     // can have zero or more *// unary
     while (checkToken(TokenType::ASTERISK) || checkToken(TokenType::SLASH)){
+        emitter.emit(curToken.text);
         nextToken();
         unary();
     }
 }
 
 void Parser::expression(){
-    std::cout << "EXPRESSION\n";
-
     term();
 
     // can have zero or more +/- term
     while (checkToken(TokenType::PLUS) || checkToken(TokenType::MINUS)){
+        emitter.emit(curToken.text);
         nextToken();
         term();
     }
@@ -136,11 +138,11 @@ bool Parser::isComparisonOperator(){
 }
 
 void Parser::comparison(){
-    std::cout << "COMPARISON\n";
     expression();
 
     // there must be at lest one comparison
     if (isComparisonOperator()){
+        emitter.emit(curToken.text);
         nextToken();
         expression();
     }
@@ -150,6 +152,7 @@ void Parser::comparison(){
 
     // there can be more comparison - expression pairs
     while (isComparisonOperator()){
+        emitter.emit(curToken.text);
         nextToken();
         expression();
     }
@@ -160,26 +163,29 @@ void Parser::statement(){
 
     // "PRINT" (expression | string)
     if (checkToken(TokenType::PRINT)){
-        std::cout << "STATEMENT-PRINT\n";
-
         nextToken();
-        if (checkToken(TokenType::STRING))
+        if (checkToken(TokenType::STRING)){
             // found simple string
+            emitter.emitLine("printf(\"" + curToken.text + "\\n\");");
             nextToken();
-        else
-            // else expecting an expression
+        }
+        else{
+            // else expecting an expression, print as float
+            emitter.emit("printf(\"\%.2f\\n\", (float)(");
             expression();
+            emitter.emitLine("));");
+        }
     }
     // "IF" comparison "THEN" nl {statement} "ENDIF"
     else if (checkToken(TokenType::IF)){
-        std::cout << "STATEMENT-IF\n";
-
         nextToken();
+        emitter.emit("if(");
         comparison();
 
         //expect THEN
         match(TokenType::THEN);
         nl();
+        emitter.emitLine("){");
 
         // zero or more statements
         while (!checkToken(TokenType::ENDIF))
@@ -188,25 +194,26 @@ void Parser::statement(){
         // it is already a given that curToken will be ENDIF but this is just formal
         // and moves to the next token
         match(TokenType::ENDIF);
+        emitter.emitLine("}");
     }
     // "WHILE" comparison "REPEAT" nl {statement} "ENDWHILE"
     else if (checkToken(TokenType::WHILE)){
-        std::cout << "STATEMENT-WHILE\n";
-
         nextToken();
+        emitter.emit("while(");
         comparison();
 
         match(TokenType::REPEAT);
         nl();
+        emitter.emitLine("){");
 
         while (!checkToken(TokenType::ENDWHILE))
             statement();
 
         match(TokenType::ENDWHILE);
+        emitter.emitLine("}");
     }
     // "LABEL" ident 
     else if (checkToken(TokenType::LABEL)){
-        std::cout << "STATEMENT-LABEL\n";
         nextToken();
 
         // make sure its not already declared
@@ -214,37 +221,47 @@ void Parser::statement(){
             abort("Label already exists: " + curToken.text);
         labelsDeclared.insert(curToken.text);
 
+        emitter.emitLine(curToken.text + ":");
         match(TokenType::IDENT);
     }
     // "GOTO" ident
     else if (checkToken(TokenType::GOTO)){
-        std::cout << "STATEMENT-GOTO\n";
         nextToken();
         labelsGotoed.insert(curToken.text);
+        emitter.emitLine("goto " + curToken.text + ";");
         match(TokenType::IDENT);
     }    
     // "LET" ident "=" expression
     else if (checkToken(TokenType::LET)){
-        std::cout << "STATEMENT-LET\n";
         nextToken();
 
         // Check if ident exists in symbol table. If not, declare it.
-        if (symbols.find(curToken.text) == symbols.end())
+        if (symbols.find(curToken.text) == symbols.end()){
             symbols.insert(curToken.text);
+            emitter.headerLine("float " + curToken.text + ";");
+        }
 
+        emitter.emit(curToken.text + " = ");
         match(TokenType::IDENT);
         match(TokenType::EQ);
         expression();
+        emitter.emitLine(";");
     }
     // "INPUT" ident
     else if (checkToken(TokenType::INPUT)){
-        std::cout << "STATEMENT-INPUT\n";
         nextToken();
 
         // If variable doesn't already exist, declare it
-        if (symbols.find(curToken.text) == symbols.end())
+        if (symbols.find(curToken.text) == symbols.end()){
             symbols.insert(curToken.text);
+            emitter.headerLine("float " + curToken.text + ";");
+        }
 
+        // Emit scanf but also validate the input. If invalid, set the variable to 0 and clear the input.
+        emitter.emitLine("if(0 == scanf(\"\%f\", &" + curToken.text + ")) {");
+        emitter.emitLine(curToken.text + " = 0;");
+        emitter.emitLine("scanf(\"\%*s\");");
+        emitter.emitLine("}");
         match(TokenType::IDENT);
     }  
     else{
