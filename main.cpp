@@ -29,15 +29,15 @@ int main(int argc, char* argv[]){
 
     Lexer lex{source};
 
-    Token token = lex.getToken();
-    while (token.kind != TokenType::T_EOF) {
-        // why use static_cast https://stackoverflow.com/questions/475824/static-castintfoo-vs-intfoo
-        // another hack listed in https://www.learncpp.com/cpp-tutorial/scoped-enumerations-enum-classes/ is to use +
-        std::cout << static_cast<int>(token.kind) << '\t' << token.text << '\n';
-        token = lex.getToken();
-    }  
+    // Token token = lex.getToken();
+    // while (token.kind != TokenType::T_EOF) {
+    //     // why use static_cast https://stackoverflow.com/questions/475824/static-castintfoo-vs-intfoo
+    //     // another hack listed in https://www.learncpp.com/cpp-tutorial/scoped-enumerations-enum-classes/ is to use +
+    //     std::cout << static_cast<int>(token.kind) << '\t' << token.text << '\n';
+    //     token = lex.getToken();
+    // }  
 
-    // Parser parser{lex};
-    // parser.program() # Start the parser.
-    // print("Parsing completed.")
+    Parser parser{lex};
+    parser.program(); // Start the parser.
+    std::cout << "Parsing completed.\n";
 }

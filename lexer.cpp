@@ -140,6 +140,8 @@ Token Lexer::getToken(){
                 unsigned long startPos = (unsigned) curPos;
                 while (isdigit(peek()))
                     nextChar();
+                if (isalpha(peek()))
+                    abort("IDENT can't start with numbers");
                 if (peek() == '.'){
                     nextChar();
                     if (!isdigit(peek()))

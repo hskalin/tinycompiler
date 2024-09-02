@@ -38,7 +38,7 @@ enum class TokenType {
     GT = 210,
     GTEQ = 211,
     // None
-    NAN = 999,
+    NAN = 666,
 };
 
 // Token contains the original text and the type of token.

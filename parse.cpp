@@ -4,6 +4,12 @@
 #include<iostream>
 #include<sstream>
 
+
+const std::string getTokenName(TokenType kind){
+    // TODO return actual names
+    return std::to_string(static_cast<int>(kind));
+}
+
 Parser::Parser(Lexer lex)
     : lexer {lex}
     {
@@ -26,9 +32,7 @@ bool Parser::checkPeek(TokenType kind){
 
 void Parser::match(TokenType kind){
     if (!checkToken(kind)) {
-        std::stringstream buff;
-        buff << "Expected kind " << static_cast<int>(kind) << ", got " << static_cast<int>(curToken.kind);
-        abort(buff.str());
+        abort("Expected kind " + getTokenName(kind) + ", got " + getTokenName(curToken.kind));
     }
     nextToken();
 }
@@ -38,3 +42,185 @@ void Parser::nextToken(){
     peekToken = lexer.getToken();
 }
 
+void Parser::program(){
+    std::cout << "PROGRAM\n";
+
+    // Since some newlines are required in our grammar, need to skip the excess.
+    while (checkToken(TokenType::NEWLINE))
+        nextToken();
+
+    // parses all the statements in the program
+    while (!checkToken(TokenType::T_EOF)){
+        statement();
+    }
+}
+
+void Parser::nl(){
+    // Require at least one newline.
+    match(TokenType::NEWLINE);
+    std::cout << "NEWLINE\n";
+
+    // But we will allow extra newlines too, of course.
+    while (checkToken(TokenType::NEWLINE))
+        nextToken();
+}
+
+void Parser::primary(){
+    std::cout << "PRIMARY (" << curToken.text << ")\n";
+    
+    if (checkToken(TokenType::NUMBER)){
+        nextToken();
+    }
+    else if (checkToken(TokenType::IDENT)){
+        nextToken();
+    }
+    else
+        abort("Unexpected token at " + curToken.text);
+}
+
+void Parser::unary(){
+    std::cout << "UNARY\n";
+
+    // may or may not have a +/- in front
+    if (checkToken(TokenType::PLUS) || checkToken(TokenType::MINUS))
+        nextToken();
+    primary();
+}
+
+void Parser::term(){
+    std::cout << "TERM\n";
+
+    unary();
+
+    // can have zero or more *// unary
+    while (checkToken(TokenType::ASTERISK) || checkToken(TokenType::SLASH)){
+        nextToken();
+        unary();
+    }
+}
+
+void Parser::expression(){
+    std::cout << "EXPRESSION\n";
+
+    term();
+
+    // can have zero or more +/- term
+    while (checkToken(TokenType::PLUS) || checkToken(TokenType::MINUS)){
+        nextToken();
+        term();
+    }
+}
+
+bool Parser::isComparisonOperator(){
+    return (
+        checkToken(TokenType::GT) || 
+        checkToken(TokenType::LT) ||
+        checkToken(TokenType::GTEQ) ||
+        checkToken(TokenType::LTEQ) ||
+        checkToken(TokenType::EQEQ) ||
+        checkToken(TokenType::NOTEQ)
+        );
+}
+
+void Parser::comparison(){
+    std::cout << "COMPARISON\n";
+    expression();
+
+    // there must be at lest one comparison
+    if (isComparisonOperator()){
+        nextToken();
+        expression();
+    }
+    else{
+        abort("Expected comparison operator at: " + curToken.text);
+    }
+
+    // there can be more comparison - expression pairs
+    while (isComparisonOperator()){
+        nextToken();
+        expression();
+    }
+}
+
+void Parser::statement(){
+    // check the first token to find what kind of statement we have to parse
+
+    // "PRINT" (expression | string)
+    if (checkToken(TokenType::PRINT)){
+        std::cout << "STATEMENT-PRINT\n";
+
+        nextToken();
+        if (checkToken(TokenType::STRING))
+            // found simple string
+            nextToken();
+        else
+            // else expecting an expression
+            expression();
+    }
+    // "IF" comparison "THEN" nl {statement} "ENDIF"
+    else if (checkToken(TokenType::IF)){
+        std::cout << "STATEMENT-IF\n";
+
+        nextToken();
+        comparison();
+
+        //expect THEN
+        match(TokenType::THEN);
+        nl();
+
+        // zero or more statements
+        while (!checkToken(TokenType::ENDIF))
+            statement();
+
+        // it is already a given that curToken will be ENDIF but this is just formal
+        // and moves to the next token
+        match(TokenType::ENDIF);
+    }
+    // "WHILE" comparison "REPEAT" nl {statement} "ENDWHILE"
+    else if (checkToken(TokenType::WHILE)){
+        std::cout << "STATEMENT-WHILE\n";
+
+        nextToken();
+        comparison();
+
+        match(TokenType::REPEAT);
+        nl();
+
+        while (!checkToken(TokenType::ENDWHILE))
+            statement();
+
+        match(TokenType::ENDWHILE);
+    }
+    // "LABEL" ident 
+    else if (checkToken(TokenType::LABEL)){
+        std::cout << "STATEMENT-LABEL\n";
+        nextToken();
+        match(TokenType::IDENT);
+    }
+    // "GOTO" ident
+    else if (checkToken(TokenType::GOTO)){
+        std::cout << "STATEMENT-GOTO\n";
+        nextToken();
+        match(TokenType::IDENT);
+    }    
+    // "LET" ident "=" expression
+    else if (checkToken(TokenType::LET)){
+        std::cout << "STATEMENT-LET\n";
+        nextToken();
+        match(TokenType::IDENT);
+        match(TokenType::EQ);
+        expression();
+    }
+    // "INPUT" ident
+    else if (checkToken(TokenType::INPUT)){
+        std::cout << "STATEMENT-INPUT\n";
+        nextToken();
+        match(TokenType::IDENT);
+    }  
+    else{
+        abort("Invalid statement at " + curToken.text + " (" + getTokenName(curToken.kind) + ")");
+    }
+
+    // newline is common for all
+    nl();
+}
